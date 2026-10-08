@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Опитування F3</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:#070B16;color:#E8ECF5;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       padding:max(20px,env(safe-area-inset-top)) 18px max(24px,env(safe-area-inset-bottom));min-height:100vh}
+  .wrap{max-width:520px;margin:0 auto}
+  .kick{font:800 12px/1.2 ui-monospace,Consolas,monospace;letter-spacing:.2em;color:#35D6F5;text-transform:uppercase;margin:6px 0 10px}
+  h1{font-size:24px;line-height:1.2;margin:0 0 6px;color:#fff}
+  h1 em{font-style:normal;color:#F2B632}
+  .line{width:150px;height:3px;border-radius:3px;margin:12px 0 14px;background:linear-gradient(90deg,#35D6F5,rgba(53,214,245,0));box-shadow:0 0 8px rgba(53,214,245,.8)}
+  p.s{margin:0 0 16px;color:#9AAABD;font-size:15px}
+  button{display:block;width:100%;margin:0 0 12px;padding:18px 16px;font-size:19px;font-weight:700;text-align:left;color:#E8ECF5;
+         background:#0c1626;border:2px solid #35D6F544;border-radius:16px;cursor:pointer;transition:border-color .2s,background .2s,transform .1s}
+  button:active{transform:scale(.985)}
+  button.on{border-color:#3BE08A;background:#0e2a22;color:#3BE08A}
+  #m{min-height:24px;margin-top:10px;text-align:center;font-size:15px;color:#9AAABD}
+  #m.ok{color:#3BE08A}#m.er{color:#FF4D5E}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kick">F3 · FIRST RUN 2026</div>
+  <h1>Що вам найбільше цікаво <em>створювати</em>?</h1>
+  <div class="line"></div>
+  <p class="s">Оберіть один варіант. Змінити вибір можна, поки голосування відкрите.</p>
+  <div id="o"></div>
+  <div id="m"></div>
+</div>
+<script>
+/* Адреса вашого сервісу Google Apps Script (закінчується на /exec). Для перевірки її можна підмінити параметром ?api=… */
+var DEFAULT_API='https://script.google.com/macros/s/AKfycbzuaagll0vD-bbYyD4txKQli9Dw7exiLFB8_DLPzexCSTfvGVZh8CHYXadHa8XEl9QS/exec';
+var API=(new URLSearchParams(location.search)).get('api')||DEFAULT_API;
+var OPTS=['Веб','Застосунки','Ігри','Системи зі ШІ','Дані','Кібербезпека','Поки шукаю'];
+function rnd(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
+var id;try{id=localStorage.f3id||(localStorage.f3id=rnd())}catch(e){id=rnd()}
+var box=document.getElementById('o'),msg=document.getElementById('m'),seq=0;
+function say(t,c){msg.className=c||'';msg.textContent=t}
+function mark(i){Array.prototype.forEach.call(box.children,function(b,k){b.classList.toggle('on',k===i)})}
+function jsonp(url,cb){
+  var n='cb'+Math.random().toString(36).slice(2),s=document.createElement('script'),done=false;
+  function end(e,d){if(done)return;done=true;try{delete window[n]}catch(x){window[n]=undefined}if(s.parentNode)s.parentNode.removeChild(s);cb(e,d)}
+  window[n]=function(d){end(null,d)};
+  s.onerror=function(){end(new Error('net'))};
+  s.src=url+(url.indexOf('?')>-1?'&':'?')+'callback='+n+'&t='+Date.now();
+  document.head.appendChild(s);
+  setTimeout(function(){end(new Error('timeout'))},9000);
+}
+function send(i,my,tries){
+  jsonp(API+'?action=vote&id='+encodeURIComponent(id)+'&opt='+i,function(e,r){
+    if(my!==seq)return;
+    if(e||!r){if(tries<2){setTimeout(function(){send(i,my,tries+1)},900);return}mark(-1);say('Не вдалося надіслати. Перевірте інтернет і натисніть ще раз.','er');return}
+    if(r.ok){try{localStorage.f3choice=i}catch(x){}say('Дякуємо! Ваш голос враховано. Можна змінити вибір.','ok')}
+    else{mark(-1);say(r.reason==='closed'?'Голосування завершено.':'Помилка, спробуйте ще раз.','er')}
+  });
+}
+OPTS.forEach(function(t,i){
+  var b=document.createElement('button');b.type='button';b.textContent=t;
+  b.onclick=function(){var my=++seq;mark(i);say('Надсилаю…');send(i,my,0)};
+  box.appendChild(b);
+});
+try{var c=localStorage.f3choice;if(c!==undefined&&c!==null&&c!==''){mark(+c);say('Ваш голос уже враховано. Можна змінити вибір.','ok')}}catch(e){}
+</script>
+</body>
+</html>
