@@ -42,7 +42,7 @@ var box=document.getElementById('o'),msg=document.getElementById('m'),seq=0;
 function say(t,c){msg.className=c||'';msg.textContent=t}
 function mark(i){Array.prototype.forEach.call(box.children,function(b,k){b.classList.toggle('on',k===i)})}
 function jsonp(url,cb){
-  var n='cb'+Math.random().toString(36).slice(2),s=document.createElement('script'),done=false;
+  var n='cb'+Math.random().toString(36).slice(2),s=document.createElement('script'),done=false;s.referrerPolicy='no-referrer';s.async=true;
   function end(e,d){if(done)return;done=true;try{delete window[n]}catch(x){window[n]=undefined}if(s.parentNode)s.parentNode.removeChild(s);cb(e,d)}
   window[n]=function(d){end(null,d)};
   s.onerror=function(){end(new Error('net'))};
@@ -50,10 +50,13 @@ function jsonp(url,cb){
   document.head.appendChild(s);
   setTimeout(function(){end(new Error('timeout'))},9000);
 }
+function beacon(i){try{var im=new Image();im.referrerPolicy='no-referrer';im.src=API+'?action=vote&id='+encodeURIComponent(id)+'&opt='+i+'&t='+Date.now()}catch(x){}}
 function send(i,my,tries){
   jsonp(API+'?action=vote&id='+encodeURIComponent(id)+'&opt='+i,function(e,r){
     if(my!==seq)return;
-    if(e||!r){if(tries<2){setTimeout(function(){send(i,my,tries+1)},900);return}mark(-1);say('Не вдалося надіслати. Перевірте інтернет і натисніть ще раз.','er');return}
+    if(e||!r){
+      if(tries<1){beacon(i);setTimeout(function(){send(i,my,tries+1)},900);return}
+      beacon(i);mark(i);say('Голос надіслано, але підтвердження не прийшло ('+(e&&e.message||'порожня відповідь')+'). Якщо хочете, натисніть ще раз.','ok');return}
     if(r.ok){try{localStorage.f3choice=i}catch(x){}say('Дякуємо! Ваш голос враховано. Можна змінити вибір.','ok')}
     else{mark(-1);say(r.reason==='closed'?'Голосування завершено.':'Помилка, спробуйте ще раз.','er')}
   });
