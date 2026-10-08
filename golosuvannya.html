@@ -56,7 +56,7 @@ function send(i,my,tries){
     if(my!==seq)return;
     if(e||!r){
       if(tries<1){beacon(i);setTimeout(function(){send(i,my,tries+1)},900);return}
-      beacon(i);mark(i);say('Голос надіслано, але підтвердження не прийшло ('+(e&&e.message||'порожня відповідь')+'). Якщо хочете, натисніть ще раз.','ok');return}
+      beacon(i);mark(i);try{localStorage.f3choice=i}catch(x){}say('Дякуємо! Ваш голос надіслано. Можна змінити вибір.','ok');return}
     if(r.ok){try{localStorage.f3choice=i}catch(x){}say('Дякуємо! Ваш голос враховано. Можна змінити вибір.','ok')}
     else{mark(-1);say(r.reason==='closed'?'Голосування завершено.':'Помилка, спробуйте ще раз.','er')}
   });
