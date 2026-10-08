@@ -51,14 +51,27 @@ function jsonp(url,cb){
   setTimeout(function(){end(new Error('timeout'))},9000);
 }
 function beacon(i){try{var im=new Image();im.referrerPolicy='no-referrer';im.src=API+'?action=vote&id='+encodeURIComponent(id)+'&opt='+i+'&t='+Date.now()}catch(x){}}
-function send(i,my,tries){
-  jsonp(API+'?action=vote&id='+encodeURIComponent(id)+'&opt='+i,function(e,r){
+function okMsg(i){try{localStorage.f3choice=i}catch(x){}say('Дякуємо! Ваш голос враховано. Можна змінити вибір.','ok')}
+function viaFetch(i,my,next){
+  var u=API+'?action=vote&id='+encodeURIComponent(id)+'&opt='+i+'&t='+Date.now();
+  if(!window.fetch){next();return}
+  fetch(u,{credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store'}).then(function(r){return r.json()}).then(function(r){
     if(my!==seq)return;
-    if(e||!r){
-      if(tries<1){beacon(i);setTimeout(function(){send(i,my,tries+1)},900);return}
-      beacon(i);mark(i);try{localStorage.f3choice=i}catch(x){}say('Дякуємо! Ваш голос надіслано. Можна змінити вибір.','ok');return}
-    if(r.ok){try{localStorage.f3choice=i}catch(x){}say('Дякуємо! Ваш голос враховано. Можна змінити вибір.','ok')}
-    else{mark(-1);say(r.reason==='closed'?'Голосування завершено.':'Помилка, спробуйте ще раз.','er')}
+    if(r&&r.ok){okMsg(i)}else if(r&&r.reason==='closed'){mark(-1);say('Голосування завершено.','er')}else next()
+  }).catch(function(){
+    fetch(u,{mode:'no-cors',credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store'}).then(function(){if(my===seq)okMsg(i)}).catch(function(){if(my===seq)next()})
+  })
+}
+function send(i,my,tries){
+  viaFetch(i,my,function(){
+    jsonp(API+'?action=vote&id='+encodeURIComponent(id)+'&opt='+i,function(e,r){
+      if(my!==seq)return;
+      if(e||!r){
+        if(tries<1){beacon(i);setTimeout(function(){send(i,my,tries+1)},900);return}
+        beacon(i);mark(i);okMsg(i);return}
+      if(r.ok){okMsg(i)}
+      else{mark(-1);say(r.reason==='closed'?'Голосування завершено.':'Помилка, спробуйте ще раз.','er')}
+    });
   });
 }
 OPTS.forEach(function(t,i){
